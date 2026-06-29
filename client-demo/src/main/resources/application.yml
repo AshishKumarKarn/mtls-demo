@@ -1,0 +1,26 @@
+server:
+  # Plain HTTP, browser-facing. No TLS and no client certificate required here:
+  # the gateway is the trusted intermediary that owns the client certificate.
+  port: 8080
+
+spring:
+  application:
+    name: client-demo
+
+mtls:
+  # Base URL of the protected mTLS server the gateway calls on the user's behalf.
+  server-url: https://localhost:9443
+
+  # Trust material: CA used to verify the SERVER's certificate.
+  trust-store: classpath:certs/truststore.p12
+  trust-store-password: changeit
+
+  # The gateway's own client identity (signed by the trusted CA), presented to
+  # the server during the mutual-TLS handshake.
+  key-store: classpath:certs/client.p12
+  key-store-password: changeit
+
+logging:
+  level:
+    root: WARN
+    com.example.clientdemo: INFO

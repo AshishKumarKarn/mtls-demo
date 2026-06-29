@@ -1,0 +1,34 @@
+server:
+  port: 9443
+  ssl:
+    enabled: true
+
+    # --- Server identity: presented to clients during the TLS handshake ---
+    key-store: classpath:certs/server.p12
+    key-store-password: changeit
+    key-store-type: PKCS12
+    key-alias: server
+
+    # --- Trust material: CA used to verify the CLIENT certificate ---
+    trust-store: classpath:certs/truststore.p12
+    trust-store-password: changeit
+    trust-store-type: PKCS12
+
+    # --- Client certificate handling ---
+    # WANT  = the client cert is REQUESTED but the handshake still completes if
+    #         none is sent. This lets a PUBLIC endpoint (/health) be reachable
+    #         by a plain browser, while ClientCertificateFilter still REQUIRES a
+    #         trusted cert for everything under /api/**.
+    #         (If a cert IS presented it must be CA-signed, or the TLS handshake
+    #         fails — so a rogue/untrusted cert is still rejected outright.)
+    # NEED  = a trusted client cert is mandatory for the WHOLE port.
+    # NONE  = plain one-way TLS (server only).
+    client-auth: want
+
+spring:
+  application:
+    name: server-demo
+
+logging:
+  level:
+    org.springframework.web: INFO
