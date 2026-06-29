@@ -142,6 +142,68 @@ curl http://localhost:8080/ping
 
 ---
 
+## Verifying traffic is encrypted
+
+Once the TLS handshake completes, **all** application data on `:9443` — the
+request line, headers, body, and the JSON responses — is encrypted with the
+negotiated symmetric cipher. The client certificate only authenticates *who*
+the caller is; encryption happens regardless. Three ways to confirm it:
+
+### 1. Inspect the negotiated cipher
+```bash
+echo "Q" | openssl s_client -connect localhost:9443 -servername localhost 2>/dev/null \
+  | grep -E "Protocol|Cipher is"
+# Protocol  : TLSv1.3
+# New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+```
+`TLS_AES_256_GCM_SHA384` means AES-256-GCM is encrypting the data. (A
+`Verify return code: 19` here is just trust — we passed no CA file — and is
+unrelated to encryption.)
+
+### 2. Capture the packets and compare (the convincing one)
+The gateway hop (`:8080`) is plain HTTP, so the data is readable on the wire.
+The server hop (`:9443`) is TLS, so the same data is ciphertext. Run from the
+project root (the `tcpdump` lines need `sudo`):
+
+```bash
+# A) Plain HTTP to the gateway on :8080
+sudo tcpdump -i lo0 -s0 'tcp port 8080' -w /tmp/p8080.pcap & TP=$!; sleep 1
+curl -s http://localhost:8080/whoami >/dev/null; sleep 1; sudo kill $TP 2>/dev/null
+strings /tmp/p8080.pcap | grep -E "authenticated|demo-client|GET /"
+#  -> MATCHES: "GET /whoami", "authenticated", "CN=demo-client" are readable
+
+# B) TLS (mTLS) to the server on :9443
+sudo tcpdump -i lo0 -s0 'tcp port 9443' -w /tmp/p9443.pcap & TP=$!; sleep 1
+curl -s --cacert certs/ca.crt --cert certs/client.crt --key certs/client.key \
+     https://localhost:9443/api/whoami >/dev/null; sleep 1; sudo kill $TP 2>/dev/null
+strings /tmp/p9443.pcap | grep -E "authenticated|demo-client|GET /"
+#  -> NO MATCH: path, headers, and JSON are all encrypted on the wire
+```
+Identical data, readable on `:8080`, unreadable on `:9443` — that contrast is
+the proof. Opening `p9443.pcap` in **Wireshark** shows `Application Data`
+records (not HTTP); the only cleartext is the handshake certificates, which are
+public by design.
+
+### 3. Prove it's encrypted-but-decryptable-with-keys
+To *see* the plaintext recovered only with the session keys, log them and point
+Wireshark at the log:
+```bash
+SSLKEYLOGFILE=/tmp/keys.log curl --cacert certs/ca.crt --cert certs/client.crt \
+  --key certs/client.key https://localhost:9443/api/whoami
+```
+In Wireshark: **Preferences → Protocols → TLS → (Pre)-Master-Secret log
+filename = `/tmp/keys.log`**, then reload `p9443.pcap`. The `Application Data`
+now decrypts into the HTTP request/response; without the key file it stays
+ciphertext.
+
+> **Why it's encrypted regardless of the client cert:** TLS does two
+> independent things — an ECDHE key exchange that derives a shared symmetric key
+> for **encryption**, and certificate checks for **authentication**. mTLS only
+> adds *client* authentication on top; the encryption is present even in
+> ordinary one-way HTTPS.
+
+---
+
 ## How it works
 
 ### Server: public health + protected API on one port
@@ -175,7 +237,10 @@ server:
 
 ## Certificates
 
-All material is produced by [`certs/generate-certs.sh`](certs/generate-certs.sh):
+All material is produced by [`certs/generate-certs.sh`](certs/generate-certs.sh).
+For the **full step-by-step OpenSSL/keytool walkthrough** — how the self-signed
+CA is created and how each leaf certificate is signed — see
+[`certs/CERTIFICATES.md`](certs/CERTIFICATES.md).
 
 | File                | Type           | Signed by    | Purpose                                  |
 |---------------------|----------------|--------------|------------------------------------------|
@@ -212,6 +277,7 @@ mtls-demo/
 ├── README.md                  # this file
 ├── certs/
 │   ├── generate-certs.sh       # regenerates all certs + keystores
+│   ├── CERTIFICATES.md         # step-by-step cert creation & signing guide
 │   └── *.crt *.key *.p12       # generated material (incl. rogue-client for tests)
 ├── server-demo/                # secured server (HTTPS :9443)
 │   ├── pom.xml
