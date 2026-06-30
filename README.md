@@ -240,7 +240,9 @@ server:
 All material is produced by [`certs/generate-certs.sh`](certs/generate-certs.sh).
 For the **full step-by-step OpenSSL/keytool walkthrough** — how the self-signed
 CA is created and how each leaf certificate is signed — see
-[`certs/CERTIFICATES.md`](certs/CERTIFICATES.md).
+[`certs/CERTIFICATES.md`](certs/CERTIFICATES.md). For an explanation of **each
+certificate type and how a client request is validated**, see
+[`CONCEPTS.md`](CONCEPTS.md).
 
 | File                | Type           | Signed by    | Purpose                                  |
 |---------------------|----------------|--------------|------------------------------------------|
@@ -275,6 +277,7 @@ keytool -list -v -keystore certs/client.p12 -storepass changeit
 ```
 mtls-demo/
 ├── README.md                  # this file
+├── CONCEPTS.md                 # certificate types & request-validation explainer
 ├── certs/
 │   ├── generate-certs.sh       # regenerates all certs + keystores
 │   ├── CERTIFICATES.md         # step-by-step cert creation & signing guide
