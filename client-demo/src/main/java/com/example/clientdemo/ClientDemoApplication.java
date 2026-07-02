@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * without any certificate, and the gateway forwards the request to the
  * protected server over mutual TLS using its own client certificate. See
  * {@link GatewayController} for the exposed endpoints and
- * {@link MtlsRestTemplateConfig} for the mTLS HTTP client.
+ * {@link MtlsRestClientConfig} for the mTLS HTTP client.
  */
 @SpringBootApplication
 public class ClientDemoApplication {

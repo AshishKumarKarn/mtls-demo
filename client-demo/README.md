@@ -32,9 +32,9 @@ curl http://localhost:8080/whoami
 Or open <http://localhost:8080/> in a browser.
 
 ## How it works
-- `MtlsRestTemplateConfig` builds a `RestTemplate` on Apache HttpClient 5 with an
-  `SSLContext` loaded from `client.p12` (the gateway's identity) and
-  `truststore.p12` (the CA used to verify the server).
+- `MtlsRestClientConfig` builds a `RestClient` (Spring 6.1+) over an Apache
+  HttpClient 5 request factory whose `SSLContext` is loaded from `client.p12`
+  (the gateway's identity) and `truststore.p12` (the CA used to verify the server).
 - `GatewayController` exposes the plain-HTTP endpoints and forwards them to
   `mtls.server-url` over that mutual-TLS client. Upstream failures return HTTP
   502 with a short message.

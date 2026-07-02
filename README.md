@@ -226,11 +226,11 @@ server:
   "untrusted certificate" case.
 
 ### Gateway: HTTP in, mTLS out
-- `MtlsRestTemplateConfig` builds a `RestTemplate` (Apache HttpClient 5) whose
-  `SSLContext` is loaded with the gateway's client keystore (`client.p12`) and
-  the CA truststore (`truststore.p12`).
+- `MtlsRestClientConfig` builds a `RestClient` (Spring 6.1+) over an Apache
+  HttpClient 5 request factory whose `SSLContext` is loaded with the gateway's
+  client keystore (`client.p12`) and the CA truststore (`truststore.p12`).
 - `GatewayController` exposes plain-HTTP endpoints and forwards each one to the
-  server over that mutual-TLS `RestTemplate`. On upstream failure it returns
+  server over that mutual-TLS `RestClient`. On upstream failure it returns
   HTTP **502** with a short message rather than a stack trace.
 
 ---
@@ -301,7 +301,7 @@ mtls-demo/
         ├── java/com/example/clientdemo/
         │   ├── ClientDemoApplication.java
         │   ├── GatewayController.java        # plain-HTTP endpoints
-        │   └── MtlsRestTemplateConfig.java   # mTLS RestTemplate bean
+        │   └── MtlsRestClientConfig.java     # mTLS RestClient bean
         └── resources/
             ├── application.yml
             └── certs/          # client.p12, truststore.p12

@@ -14,11 +14,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
- * Builds the {@link RestTemplate} the gateway uses to call the mTLS server.
+ * Builds the {@link RestClient} the gateway uses to call the mTLS server.
  *
  * <p>The SSLContext is loaded with:
  * <ul>
@@ -28,11 +29,13 @@ import org.springframework.web.client.RestTemplate;
  *       verify the server's certificate.</li>
  * </ul>
  *
- * <p>Browsers never touch any of this: they speak plain HTTP to the gateway,
- * which then performs the mutual-TLS call on their behalf.
+ * <p>The mutual-TLS is entirely in the underlying Apache HttpClient 5 request
+ * factory; {@link RestClient} is just the fluent API on top of it. Browsers
+ * never touch any of this: they speak plain HTTP to the gateway, which then
+ * performs the mutual-TLS call on their behalf.
  */
 @Configuration
-public class MtlsRestTemplateConfig {
+public class MtlsRestClientConfig {
 
     @Value("${mtls.trust-store}")
     private Resource trustStore;
@@ -45,7 +48,7 @@ public class MtlsRestTemplateConfig {
     private String keyStorePassword;
 
     @Bean
-    public RestTemplate mtlsRestTemplate() throws Exception {
+    public RestClient mtlsRestClient() throws Exception {
         SSLContext sslContext = SSLContextBuilder.create()
                 .loadTrustMaterial(load(trustStore, trustStorePassword), null)
                 .loadKeyMaterial(load(keyStore, keyStorePassword), keyStorePassword.toCharArray())
@@ -59,7 +62,11 @@ public class MtlsRestTemplateConfig {
                 .build();
         HttpClient httpClient = HttpClients.custom().setConnectionManager(cm).build();
 
-        return new RestTemplate(new HttpComponentsClientHttpRequestFactory(httpClient));
+        ClientHttpRequestFactory requestFactory =
+                new HttpComponentsClientHttpRequestFactory(httpClient);
+        return RestClient.builder()
+                .requestFactory(requestFactory)
+                .build();
     }
 
     /** Loads a PKCS12 keystore from a Spring resource. */

@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 /**
  * Browser-facing gateway.
@@ -25,12 +25,12 @@ import org.springframework.web.client.RestTemplate;
 @RestController
 public class GatewayController {
 
-    private final RestTemplate mtls;
+    private final RestClient mtls;
     private final String serverUrl;
 
-    public GatewayController(RestTemplate mtlsRestTemplate,
+    public GatewayController(RestClient mtlsRestClient,
                              @Value("${mtls.server-url}") String serverUrl) {
-        this.mtls = mtlsRestTemplate;
+        this.mtls = mtlsRestClient;
         this.serverUrl = serverUrl;
     }
 
@@ -90,7 +90,7 @@ public class GatewayController {
     private ResponseEntity<String> proxy(String path) {
         String url = serverUrl + path;
         try {
-            String body = mtls.getForObject(url, String.class);
+            String body = mtls.get().uri(url).retrieve().body(String.class);
             return ResponseEntity.ok()
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body);
