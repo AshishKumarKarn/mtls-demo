@@ -83,6 +83,40 @@ two-way validation happens *before* any application code runs.
 4. All yes → handshake completes; the validated chain is exposed to the app as
    the servlet attribute `jakarta.servlet.request.X509Certificate`.
 
+## Why curl needs `--cacert ca.crt`
+
+The curl flags map exactly onto the two handshake directions above:
+
+| Flag | Direction | Question it answers |
+|---|---|---|
+| `--cacert ca.crt` | Step 1 — curl verifies the **server** | "Whom do *I* trust?" (curl's truststore for this request) |
+| `--cert client.crt --key client.key` | Step 2 — server verifies the **client** | "Who am *I*?" (curl's keystore, in effect) |
+
+By default curl trusts only the public CAs in the OS trust store (Let's
+Encrypt, DigiCert, …). Our `server.crt` is signed by the demo CA, which no OS
+knows about, so without `--cacert` Step 1 fails before anything else happens:
+
+```
+curl: (60) SSL certificate problem: unable to get local issuer certificate
+```
+
+`--cacert ca.crt` says "for this request, trust certificates that chain to
+*this* root" — the same role `truststore.p12` plays for the Java apps.
+
+Two things worth noting:
+
+- **`--cacert` is about the demo CA being self-signed, not about mTLS.** With a
+  server cert from a public CA you would drop `--cacert`, but clients would
+  still need `--cert`/`--key` for the mutual part.
+- **`curl -k` is not an equivalent shortcut** — it skips server verification
+  entirely, i.e. it disables Step 1 rather than satisfying it, which defeats
+  half the point of the demo.
+
+That is also why the rogue-cert test still fails even though `--cacert` is
+supplied: `--cacert` only fixes curl's view of the server. The server's view of
+the client is decided by *its* truststore, which cannot chain
+`rogue-client.crt` to `ca.crt`.
+
 ## The three outcomes — and exactly where each is decided
 
 | Request | Where it's decided | Result |

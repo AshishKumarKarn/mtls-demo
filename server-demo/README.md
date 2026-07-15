@@ -36,6 +36,13 @@ curl --cacert ca.crt --cert client.crt --key client.key \
      https://localhost:9443/api/whoami                                             # 200 (valid)
 ```
 
+> **Why `--cacert ca.crt`?** The server's certificate is signed by our own demo
+> CA, which curl (unlike the OS trust store's public CAs) doesn't know. The flag
+> tells curl to trust certs chaining to that root when verifying the *server* —
+> it plays the same role `truststore.p12` plays for the Java apps. It has
+> nothing to do with client authentication, which is what `--cert`/`--key` do.
+> Details: [CONCEPTS.md → "Why curl needs `--cacert ca.crt`"](../CONCEPTS.md#why-curl-needs---cacert-cacrt).
+
 ## Keystores (`src/main/resources/certs/`)
 - `server.p12` — server key + certificate (`key-alias: server`)
 - `truststore.p12` — demo CA, used to verify incoming client certificates
