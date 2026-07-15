@@ -99,7 +99,9 @@ endpoints.
 
 Run these from the `certs/` directory while **the server** is running. The
 `--cacert ca.crt` flag lets curl trust the self-signed demo CA (to verify the
-*server*); `--cert`/`--key` present a *client* certificate.
+*server*); `--cert`/`--key` present a *client* certificate. See
+[CONCEPTS.md → "Why curl needs `--cacert ca.crt`"](CONCEPTS.md#why-curl-needs---cacert-cacrt)
+for the full explanation.
 
 ### ✅ Public health check — NO client certificate → ALLOWED
 ```bash
